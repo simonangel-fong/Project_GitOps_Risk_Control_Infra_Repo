@@ -141,3 +141,15 @@ Then open <https://localhost:8080> and log in as `admin`.
 - The Helm release is created with `wait = true` and a 600 s `timeout` because Argo CD CRDs are large and slow to install.
 - The root `Application` has `automated.prune = true` and `selfHeal = true`; anything you remove from the GitOps repo will be pruned from the cluster.
 - Always set `depends_on = [module.eks_node_group]` (or whatever creates worker nodes) so the chart has somewhere to schedule pods.
+
+---
+
+## Connetion
+
+```sh
+kubectl port-forward svc/argocd-server 8000:80 -n argocd
+
+k get secret argocd-initial-admin-secret -n argocd -o yaml
+
+echo NXZtamphSUZIcVRXTWFvWA== | base64 -d
+```

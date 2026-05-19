@@ -22,7 +22,7 @@ module "eks" {
 }
 
 # ##############################
-# EKS Node Group
+# EKS Node Group: Bootstrap
 # ##############################
 module "eks_node_group" {
   source = "../../modules/eks_node_group"
@@ -32,11 +32,36 @@ module "eks_node_group" {
   subnet_ids      = module.vpc.private_subnet_ids
 
   instance_types = ["t3.medium"]
-  desired_size   = 1
+  desired_size   = 2
   min_size       = 1
   max_size       = 3
 
   node_group_tags = local.tags
+}
+
+# ##############################
+# Karpenter(Auth model: Pod Identity)
+# ##############################
+module "karpenter" {
+  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version = "~> 20.0"
+
+  cluster_name = module.eks.cluster_name
+
+  # Pod Identity for the controller ServiceAccount
+  enable_pod_identity             = true
+  create_pod_identity_association = true
+
+  # Reuse the bootstrap node group's IAM role for Karpenter-launched nodes
+  create_node_iam_role = false
+  node_iam_role_arn    = module.eks_node_group.node_role_arn
+
+  # The bootstrap node role already has an access entry from the node group
+  create_access_entry = false
+
+  tags = local.tags
+
+  depends_on = [module.eks]
 }
 
 # ##############################
@@ -45,9 +70,9 @@ module "eks_node_group" {
 module "eks_argocd" {
   source = "../../modules/eks_argocd"
 
-  namespace      = "argocd"
-  release_name   = "argocd"
-  chart_version  = "9.5.14"
+  namespace     = "argocd"
+  release_name  = "argocd"
+  chart_version = "9.5.14"
 
   # Extra Helm values merged on top of module defaults
   values = yamlencode({
@@ -61,7 +86,7 @@ module "eks_argocd" {
   gitops_repo_url      = "https://github.com/simonangel-fong/Project_GitOps_Platform_Repo.git"
   gitops_repo_revision = "main"
   gitops_repo_path     = "bootstrap"
-  root_app_name        = "root"
+  root_app_name        = "app-of-apps"
   root_app_project     = "default"
 
   depends_on = [module.eks_node_group]
