@@ -40,10 +40,10 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 # ##############################
 resource "aws_eks_node_group" "main" {
   node_group_name = var.node_group_name
-  
-  cluster_name    = var.cluster_name
-  node_role_arn   = aws_iam_role.node.arn
-  subnet_ids      = var.subnet_ids
+
+  cluster_name  = var.cluster_name
+  node_role_arn = aws_iam_role.node.arn
+  subnet_ids    = var.subnet_ids
 
   instance_types = var.instance_types
   capacity_type  = var.capacity_type
@@ -61,6 +61,10 @@ resource "aws_eks_node_group" "main" {
   }
 
   labels = var.labels
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = merge(
     var.node_group_tags,
