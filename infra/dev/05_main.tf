@@ -19,6 +19,10 @@ module "eks" {
   cluster_version = local.cluster_version
   subnet_ids      = module.vpc.private_subnet_ids
   cluster_tags    = local.tags
+
+  node_security_group_tags = {
+    "karpenter.sh/discovery" = local.cluster_name
+  }
 }
 
 # ##############################
@@ -48,16 +52,13 @@ module "karpenter" {
 
   cluster_name = module.eks.cluster_name
 
-  # Pod Identity for the controller ServiceAccount
-  enable_pod_identity             = true
+  node_iam_role_use_name_prefix   = false
+  node_iam_role_name              = module.eks.cluster_name
   create_pod_identity_association = true
 
-  # Reuse the bootstrap node group's IAM role for Karpenter-launched nodes
-  create_node_iam_role = false
-  node_iam_role_arn    = module.eks_node_group.node_role_arn
-
-  # The bootstrap node role already has an access entry from the node group
-  create_access_entry = false
+  node_iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
 
   tags = local.tags
 
@@ -89,5 +90,8 @@ module "eks_argocd" {
   root_app_name        = "app-of-apps"
   root_app_project     = "default"
 
-  depends_on = [module.eks_node_group]
+  depends_on = [
+    # module.eks_node_group,
+    module.karpenter
+  ]
 }

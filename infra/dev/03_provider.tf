@@ -22,6 +22,10 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.12"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.4"
+    }
   }
 
   backend "s3" {

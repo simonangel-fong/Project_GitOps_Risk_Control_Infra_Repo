@@ -39,6 +39,12 @@ variable "cluster_tags" {
   default     = {}
 }
 
+variable "node_security_group_tags" {
+  description = "Tags applied to the cluster security group used by worker nodes (e.g. karpenter.sh/discovery for Karpenter SG discovery)."
+  type        = map(string)
+  default     = {}
+}
+
 variable "cluster_addons" {
   description = "EKS managed add-ons to install. Map key is the add-on name (e.g. coredns, kube-proxy, vpc-cni, eks-pod-identity-agent). Set addon_version to null to use the latest compatible version."
   type = map(object({

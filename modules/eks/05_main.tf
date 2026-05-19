@@ -74,3 +74,34 @@ resource "aws_eks_cluster" "main" {
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
   ]
 }
+
+# ##############################
+# Cluster Security Group Tags
+# (worker nodes use the cluster SG; tag it for Karpenter discovery, etc.)
+# ##############################
+resource "aws_ec2_tag" "cluster_security_group" {
+  for_each = var.node_security_group_tags
+
+  resource_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  key         = each.key
+  value       = each.value
+}
+
+# ##############################
+# OIDC Provider
+# (required for IRSA — IAM roles assumed by service accounts)
+# ##############################
+data "tls_certificate" "cluster" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "this" {
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
+
+  tags = merge(
+    var.cluster_tags,
+    { Name = "${var.cluster_name}-oidc" }
+  )
+}
