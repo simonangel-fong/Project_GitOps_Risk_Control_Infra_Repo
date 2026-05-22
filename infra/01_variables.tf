@@ -29,6 +29,7 @@ variable "cloudflare_api_key" {
   type      = string
   sensitive = true
 }
+
 # variable "dns_prefix" {
 #   type = string
 # }
