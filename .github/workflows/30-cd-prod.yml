@@ -1,0 +1,92 @@
+name: 30-cd-prod
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - prod
+    paths:
+      - "infra/**"
+      - "modules/**"
+      - ".github/actions/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+
+jobs:
+  validate:
+    name: validate
+    uses: ./.github/workflows/_validate.yml
+
+  plan:
+    name: plan
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform plan (prod)
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: plan
+          tf-env: ${{ vars.ENV }}
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  apply:
+    name: apply
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform apply (prod)
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: apply
+          tf-env: ${{ vars.ENV }}
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  notify-slack:
+    name: notify-slack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [validate, plan, apply]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          needs-context: ${{ toJSON(needs) }}
