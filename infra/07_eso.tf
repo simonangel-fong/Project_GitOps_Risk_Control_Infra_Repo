@@ -83,7 +83,7 @@ output "eso_role_arn" {
 }
 
 resource "aws_ssm_parameter" "cloudflare_api_key" {
-  name        = "/gitops/cloudflare/cloudflare-api-key"
+  name        = "/gitops/${var.env}/cloudflare/cloudflare-api-key"
   description = "The cloudflare api key "
   type        = "SecureString"
   value       = var.cloudflare_api_key
