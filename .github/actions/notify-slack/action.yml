@@ -1,0 +1,50 @@
+name: notify-slack
+description: Post a workflow result summary to Slack via incoming webhook.
+
+inputs:
+  webhook-url:
+    description: Slack incoming webhook URL.
+    required: true
+  needs-context:
+    description: JSON-encoded `needs` context from the caller (pass `toJSON(needs)`).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Compute overall status
+      id: status
+      shell: bash
+      env:
+        NEEDS_JSON: ${{ inputs.needs-context }}
+        WORKFLOW_NAME: ${{ github.workflow }}
+      run: |
+        if echo "$NEEDS_JSON" | grep -E '"result"[[:space:]]*:[[:space:]]*"(failure|cancelled)"' > /dev/null; then
+          echo "icon=:x:" >> "$GITHUB_OUTPUT"
+          echo "color=danger" >> "$GITHUB_OUTPUT"
+          echo "title=${WORKFLOW_NAME} failed" >> "$GITHUB_OUTPUT"
+        else
+          echo "icon=:white_check_mark:" >> "$GITHUB_OUTPUT"
+          echo "color=good" >> "$GITHUB_OUTPUT"
+          echo "title=${WORKFLOW_NAME} succeeded" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Notify Slack
+      uses: slackapi/slack-github-action@v3.0.3
+      with:
+        webhook: ${{ inputs.webhook-url }}
+        webhook-type: incoming-webhook
+        payload: |
+          {
+            "text": "${{ steps.status.outputs.icon }} *${{ steps.status.outputs.title }}*",
+            "attachments": [
+              {
+                "color": "${{ steps.status.outputs.color }}",
+                "fields": [
+                  { "title": "Branch",  "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Commit",  "value": "${{ github.sha }}", "short": true },
+                  { "title": "Run",     "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }
+            ]
+          }
