@@ -35,7 +35,7 @@ permissions:
 env:
   TF_VERSION: "1.15.2"
   TFLINT_VERSION: "v0.58.1"
-  WORKING_DIR: infra
+  WORKING_DIR: infra/dev
   TF_SCAN_DIR: infra
   K8S_SCAN_DIR: app
 
