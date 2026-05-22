@@ -1,0 +1,85 @@
+name: _validate
+
+on:
+  workflow_call:
+    inputs:
+      tf-version:
+        description: Terraform CLI version.
+        type: string
+        required: false
+        default: "1.15.2"
+      tflint-version:
+        description: TFLint version.
+        type: string
+        required: false
+        default: "v0.58.1"
+      working-directory:
+        description: Terraform root directory to lint/validate.
+        type: string
+        required: false
+        default: infra
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  tf-lint-check:
+    name: tf-lint-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: TF Lint Check
+        uses: ./.github/actions/tf-lint-check
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          terraform-version: ${{ inputs.tf-version }}
+          tflint-version: ${{ inputs.tflint-version }}
+
+  tf-sec-scan:
+    name: tf-sec-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Trivy IaC Scan (infra)
+        uses: ./.github/actions/security-scan
+        with:
+          scan-mode: config
+          scan-ref: infra
+          skip-dirs: "**/.terraform,**/terraform-aws-modules"
+          sarif-category: trivy-iac-infra
+          summary-title: Trivy IaC scan (infra)
+          trivyignores: ${{ github.workspace }}/.trivyignore
+
+      - name: Trivy IaC Scan (modules)
+        uses: ./.github/actions/security-scan
+        with:
+          scan-mode: config
+          scan-ref: modules
+          skip-dirs: "**/.terraform,**/terraform-aws-modules"
+          sarif-category: trivy-iac-modules
+          summary-title: Trivy IaC scan (modules)
+          trivyignores: ${{ github.workspace }}/.trivyignore
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Trivy FS Secret Scan (repo)
+        uses: ./.github/actions/security-scan
+        with:
+          scan-mode: secret
+          scan-ref: .
+          sarif-category: trivy-secret
+          summary-title: Trivy secret scan
+          trivyignores: ${{ github.workspace }}/.trivyignore
