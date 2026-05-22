@@ -1,0 +1,139 @@
+name: 90-tf-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment to destroy.
+        type: choice
+        required: true
+        options:
+          - dev
+          - stage
+          - prod
+      confirm:
+        description: Type the environment name exactly to confirm (case-sensitive).
+        type: string
+        required: true
+
+concurrency:
+  group: cd-destroy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  confirm-input:
+    name: confirm-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify confirm matches environment (exact, case-sensitive)
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "$ENVIRONMENT" ]; then
+            echo "::error::Confirm input '$CONFIRM' does not exactly match environment '$ENVIRONMENT'. Aborting destroy."
+            exit 1
+          fi
+          echo "Confirmed destroy of environment '$ENVIRONMENT'."
+
+  destroy-plan-apply:
+    name: destroy-plan-apply (${{ inputs.environment }})
+    if: inputs.environment != 'prod'
+    needs: confirm-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform destroy plan & apply
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: plan-apply
+          is-destroy: "true"
+          tf-env: ${{ inputs.environment }}
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  destroy-plan:
+    name: destroy-plan (prod)
+    if: inputs.environment == 'prod'
+    needs: confirm-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform destroy plan
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: plan
+          is-destroy: "true"
+          tf-env: prod
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  destroy-apply:
+    name: destroy-apply (prod)
+    if: inputs.environment == 'prod'
+    needs: destroy-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform destroy apply
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: apply
+          is-destroy: "true"
+          tf-env: prod
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  notify-slack:
+    name: notify-slack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [confirm-input, destroy-plan-apply, destroy-plan, destroy-apply]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          needs-context: ${{ toJSON(needs) }}
