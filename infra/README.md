@@ -11,7 +11,7 @@ terraform -chdir=infra/ refresh
 terraform -chdir=infra/ state list
 
 tflint --init 
-tflint --recursive --format compact
+tflint --chdir=infra --recursive --format compact
 aws eks update-kubeconfig --region ca-central-1 --name gitops-demo-dev
 
 
