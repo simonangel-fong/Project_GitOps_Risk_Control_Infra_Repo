@@ -55,23 +55,23 @@ jobs:
           terraform-version: ${{ env.TF_VERSION }}
           tflint-version: ${{ env.TFLINT_VERSION }}
 
-  # tf-sec-scan:
-  #   name: tf-sec-scan
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 15
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v6.0.2
+  tf-sec-scan:
+    name: tf-sec-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
-  #     - name: Trivy IaC Scan (Terraform)
-  #       uses: ./.github/actions/security-scan
-  #       with:
-  #         scan-mode: config
-  #         scan-ref: ${{ env.TF_SCAN_DIR }}
-  #         skip-dirs: "**/.terraform,**/terraform-aws-modules"
-  #         sarif-category: trivy-iac-terraform
-  #         summary-title: Trivy IaC scan (Terraform)
-  #         trivyignores: ${{ github.workspace }}/.trivyignore
+      - name: Trivy IaC Scan (Terraform)
+        uses: ./.github/actions/security-scan
+        with:
+          scan-mode: config
+          scan-ref: ${{ env.TF_SCAN_DIR }}
+          skip-dirs: "**/.terraform,**/terraform-aws-modules"
+          sarif-category: trivy-iac-terraform
+          summary-title: Trivy IaC scan (Terraform)
+          trivyignores: ${{ github.workspace }}/.trivyignore
 
   # k8s-sec-scan:
   #   name: k8s-sec-scan
