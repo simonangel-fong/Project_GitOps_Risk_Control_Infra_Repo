@@ -1,0 +1,117 @@
+name: security-scan
+description: Run a single Trivy scan (IaC misconfiguration or filesystem secrets) and upload SARIF.
+
+inputs:
+  scan-mode:
+    description: "Scan kind: 'config' for IaC misconfig, 'secret' for filesystem secret scan."
+    required: true
+  scan-ref:
+    description: Path to scan.
+    required: true
+  severity:
+    description: Comma-separated severity levels to fail on.
+    required: false
+    default: "HIGH,CRITICAL"
+  skip-dirs:
+    description: Comma-separated directories to skip (glob patterns supported).
+    required: false
+    default: "**/.terraform,**/.git,**/node_modules,**/.venv,**/vendor"
+  trivyignores:
+    description: Path to a .trivyignore file (optional, leave empty to disable).
+    required: false
+    default: ""
+  trivy-version:
+    description: Trivy CLI version to install.
+    required: false
+    default: "v0.70.0"
+  sarif-category:
+    description: Category label for the uploaded SARIF results.
+    required: true
+  summary-title:
+    description: Heading used in the job summary block.
+    required: false
+    default: "Trivy scan"
+
+runs:
+  using: composite
+  steps:
+    - name: Validate scan-mode
+      shell: bash
+      run: |
+        case "${{ inputs.scan-mode }}" in
+          config|secret) ;;
+          *) echo "::error::scan-mode must be 'config' or 'secret', got '${{ inputs.scan-mode }}'"; exit 1 ;;
+        esac
+
+    - name: Setup Trivy
+      uses: aquasecurity/setup-trivy@v0.2.6
+      with:
+        version: ${{ inputs.trivy-version }}
+
+    - name: Build common Trivy args
+      id: args
+      shell: bash
+      run: |
+        args=()
+        IFS=',' read -ra dirs <<< "${{ inputs.skip-dirs }}"
+        for d in "${dirs[@]}"; do
+          d="$(echo "$d" | xargs)"
+          [ -n "$d" ] && args+=(--skip-dirs "$d")
+        done
+        if [ -n "${{ inputs.trivyignores }}" ] && [ -f "${{ inputs.trivyignores }}" ]; then
+          args+=(--ignorefile "${{ inputs.trivyignores }}")
+        fi
+        args+=(--severity "${{ inputs.severity }}")
+        printf '%s\n' "${args[@]}" > trivy-common-args.txt
+
+    - name: Trivy Scan (SARIF, failing)
+      shell: bash
+      run: |
+        mapfile -t common < trivy-common-args.txt
+        if [ "${{ inputs.scan-mode }}" = "secret" ]; then
+          trivy fs --scanners secret "${common[@]}" \
+            --format sarif --output trivy-results.sarif \
+            --exit-code 1 \
+            "${{ inputs.scan-ref }}"
+        else
+          trivy config "${common[@]}" \
+            --format sarif --output trivy-results.sarif \
+            --exit-code 1 \
+            "${{ inputs.scan-ref }}"
+        fi
+
+    - name: Trivy Scan (table summary)
+      if: always()
+      shell: bash
+      run: |
+        mapfile -t common < trivy-common-args.txt
+        if [ "${{ inputs.scan-mode }}" = "secret" ]; then
+          trivy fs --scanners secret "${common[@]}" \
+            --format table --output trivy-results.txt \
+            --exit-code 0 \
+            "${{ inputs.scan-ref }}"
+        else
+          trivy config "${common[@]}" \
+            --format table --output trivy-results.txt \
+            --exit-code 0 \
+            "${{ inputs.scan-ref }}"
+        fi
+
+    - name: Publish summary to job
+      if: always() && hashFiles('trivy-results.txt') != ''
+      shell: bash
+      run: |
+        {
+          echo "## ${{ inputs.summary-title }} — \`${{ inputs.scan-ref }}\`"
+          echo ""
+          echo '```'
+          cat trivy-results.txt
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload Trivy SARIF
+      if: always() && hashFiles('trivy-results.sarif') != ''
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: trivy-results.sarif
+        category: ${{ inputs.sarif-category }}

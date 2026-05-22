@@ -1,0 +1,53 @@
+name: tf-lint-check
+description: Run Terraform fmt, validate, and TFLint against a Terraform working directory.
+
+inputs:
+  working-directory:
+    description: Path to the Terraform directory to lint.
+    required: true
+  terraform-version:
+    description: Terraform version to install.
+    required: false
+    default: "1.15.2"
+  tflint-version:
+    description: TFLint version to install.
+    required: false
+    default: "v0.58.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v4.0.1
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Terraform Format Check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: terraform fmt -check -recursive -no-color
+
+    - name: Terraform Init (no backend)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: terraform init -backend=false -input=false -no-color
+
+    - name: Terraform Validate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: terraform validate -no-color
+
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v6.2.2
+      with:
+        tflint_version: ${{ inputs.tflint-version }}
+
+    - name: TFLint Init
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: tflint --init
+
+    - name: TFLint Run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: tflint --recursive --format compact

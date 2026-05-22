@@ -1,0 +1,122 @@
+name: tf-apply
+description: "Run terraform init/plan/apply against an AWS S3 backend using OIDC, and export selected outputs."
+
+inputs:
+  project_name:
+    description: "Project name; used as a prefix in the S3 state key."
+    required: true
+  tf_env:
+    description: "Target environment (e.g. dev, stg, prd); used in the S3 state key."
+    required: true
+  tf_version:
+    description: "Terraform CLI version to install."
+    required: false
+    default: "1.15.3"
+  tf_dir:
+    description: "Working directory containing the root Terraform module."
+    required: true
+  aws_cicd_role_arn:
+    description: "IAM role ARN to assume via OIDC."
+    required: true
+  aws_region:
+    description: "AWS region for the provider and S3 backend."
+    required: true
+  aws_backend_bucket:
+    description: "S3 bucket holding the Terraform state file."
+    required: true
+  is_destroy:
+    description: "Terraform destroy"
+    required: false
+    default: "false"
+
+
+# outputs:
+#     vpc_id: 
+#       description: ""
+#       value: ${{ steps.tf-outputs.outputs.vpc_id }}
+
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.tf_version }}
+
+    - name: Terraform fmt & validate
+      shell: bash
+      working-directory: ${{ inputs.tf_dir }}
+      run: |
+        terraform fmt -check -recursive -no-color
+        terraform init -backend=false -input=false -no-color
+        terraform validate -no-color
+
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ inputs.aws_cicd_role_arn }}
+        aws-region: ${{ inputs.aws_region }}
+
+    - name: Configure Terraform plugin cache
+      shell: bash
+      run: |
+        mkdir -p "$HOME/.terraform.d/plugin-cache"
+        printf 'plugin_cache_dir = "%s/.terraform.d/plugin-cache"\n' "$HOME" > "$HOME/.terraformrc"
+
+    - name: Cache Terraform plugins
+      uses: actions/cache@v5.0.5
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ inputs.tf_version }}-${{ hashFiles(format('{0}/.terraform.lock.hcl', inputs.tf_dir)) }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-${{ inputs.tf_version }}-
+
+    - name: Terraform init - S3 backend
+      shell: bash
+      working-directory: ${{ inputs.tf_dir }}
+      run: |
+        terraform init -reconfigure -input=false \
+          -backend-config="bucket=${{ inputs.aws_backend_bucket }}" \
+          -backend-config="region=${{ inputs.aws_region }}" \
+          -backend-config="key=${{ inputs.project_name }}/${{ inputs.tf_env }}/terraform.tfstate" \
+          -backend-config="encrypt=true"
+
+    - name: Terraform Plan
+      id: tf-plan
+      shell: bash
+      working-directory: ${{ inputs.tf_dir }}
+      run: |
+        if [ "${{ inputs.is_destroy }}" = "true" ]; then
+          terraform plan -destroy -out=tfplan -input=false -no-color
+        else
+          terraform plan -out=tfplan -input=false -no-color
+        fi
+
+    - name: Save plan artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: "tfplan-${{ inputs.is_destroy == 'true' && 'destroy' || 'deploy' }}-${{ inputs.tf_env }}"
+        path: ${{ inputs.tf_dir }}/tfplan
+        overwrite: true
+        retention-days: 3
+
+    - name: Terraform Apply
+      shell: bash
+      working-directory: ${{ inputs.tf_dir }}
+      run: terraform apply -auto-approve -input=false -no-color tfplan
+
+    # - name: Export Terraform Outputs
+    #   id: tf-outputs
+    #   shell: bash
+    #   working-directory: ${{ inputs.tf_dir }}
+    #   run: |
+    #     {
+    #       echo "vpc_id=$(terraform output -raw vpc_id)"
+    #       echo "cluster_name=$(terraform output -raw cluster_name)"
+    #       echo "cluster_endpoint=$(terraform output -raw cluster_endpoint)"
+    #       echo "queue_name=$(terraform output -raw queue_name)"
+    #       echo "lbc_arn=$(terraform output -raw iam_role_lbc)"
+    #       echo "eso_arn=$(terraform output -raw iam_role_eso)"
+    #     } >> "$GITHUB_OUTPUT"
+
