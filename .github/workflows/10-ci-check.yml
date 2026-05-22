@@ -48,12 +48,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
-  #     - name: TF Lint Check
-  #       uses: ./.github/actions/tf-lint-check
-  #       with:
-  #         working-directory: ${{ env.WORKING_DIR }}
-  #         terraform-version: ${{ env.TF_VERSION }}
-  #         tflint-version: ${{ env.TFLINT_VERSION }}
+      - name: TF Lint Check
+        uses: ./.github/actions/tf-lint-check
+        with:
+          working-directory: ${{ env.WORKING_DIR }}
+          terraform-version: ${{ env.TF_VERSION }}
+          tflint-version: ${{ env.TFLINT_VERSION }}
 
   # tf-sec-scan:
   #   name: tf-sec-scan
