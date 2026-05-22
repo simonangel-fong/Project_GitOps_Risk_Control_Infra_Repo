@@ -1,0 +1,66 @@
+name: 20-cd-dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths:
+      - "infra/**"
+      - "modules/**"
+      - ".github/actions/**"
+      - ".github/workflows/**"
+
+concurrency:
+  group: cd-${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    uses: ./.github/workflows/_validate.yml
+
+  apply:
+    name: apply
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: dev
+    env:
+      TF_VAR_env: ${{ vars.ENV }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_cloudflare_api_key: ${{ secrets.TF_VAR_cloudflare_api_key }}
+      TF_VAR_slack_bot_token: ${{ secrets.TF_VAR_slack_bot_token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Terraform plan & apply (dev)
+        uses: ./.github/actions/tf-apply
+        with:
+          mode: plan-apply
+          tf-env: dev
+          project-name: ${{ vars.PROJECT_NAME }}
+          aws-cicd-role-arn: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-backend-bucket: ${{ secrets.AWS_BACKEND_BUCKET }}
+
+  notify-slack:
+    name: notify-slack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [validate, apply]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          needs-context: ${{ toJSON(needs) }}
