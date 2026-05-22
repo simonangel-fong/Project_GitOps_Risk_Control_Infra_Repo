@@ -41,6 +41,21 @@ jobs:
           fi
           echo "Confirmed destroy of environment '$ENVIRONMENT'."
 
+<<<<<<< HEAD
+=======
+      - name: Verify workflow ref matches target environment branch
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          REF: ${{ github.ref }}
+        run: |
+          expected="refs/heads/${ENVIRONMENT}"
+          if [ "$REF" != "$expected" ]; then
+            echo "::error::Destroy of '$ENVIRONMENT' must be triggered from the '$ENVIRONMENT' branch. Current ref: '$REF' (expected '$expected'). Re-run via 'Use workflow from' → '$ENVIRONMENT'."
+            exit 1
+          fi
+          echo "Workflow ref '$REF' matches target environment '$ENVIRONMENT'."
+
+>>>>>>> dev
   destroy-plan-apply:
     name: destroy-plan-apply (${{ inputs.environment }})
     if: inputs.environment != 'prod'
