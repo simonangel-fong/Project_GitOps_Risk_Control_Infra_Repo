@@ -9,18 +9,16 @@ on:
     paths:
       - "infra/**"
       - "modules/**"
-      - ".github/actions/tf-lint-check/**"
-      - ".github/actions/security-scan/**"
-      - ".github/workflows/10-ci-check.yml"
+      - ".github/actions/**"
+      - ".github/workflows/**"
   pull_request:
     branches:
       - main
     paths:
       - "infra/**"
       - "modules/**"
-      - ".github/actions/tf-lint-check/**"
-      - ".github/actions/security-scan/**"
-      - ".github/workflows/10-ci-check.yml"
+      - ".github/actions/**"
+      - ".github/workflows/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

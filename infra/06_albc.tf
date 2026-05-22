@@ -43,7 +43,7 @@ resource "aws_iam_role" "albc" {
 resource "aws_iam_policy" "albc" {
   name        = "${module.eks.cluster_name}-albc"
   description = "Permissions for AWS Load Balancer Controller to manage ALBs/NLBs and related resources"
-  policy      = file("${path.module}/../manifests/iam-policy.json")
+  policy      = file("${path.module}/manifests/iam-policy.json")
 
   tags = local.tags
 }

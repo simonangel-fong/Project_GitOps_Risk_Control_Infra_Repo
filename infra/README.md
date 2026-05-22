@@ -1,24 +1,16 @@
-
-
 ```sh
-terraform -chdir=infra/dev init -backend-config=backend.config -upgrade
-terraform -chdir=infra/dev init -backend-config=backend.config --reconfigure
-terraform -chdir=infra/dev fmt && terraform -chdir=infra/dev validate
-terraform -chdir=infra/dev plan
+terraform -chdir=infra/ init -backend-config=backend.config -upgrade
+terraform -chdir=infra/ init -backend-config=backend.config --reconfigure
+terraform -chdir=infra/ fmt && terraform -chdir=infra/ validate
+terraform -chdir=infra/ plan
 
-terraform -chdir=infra/dev apply -auto-approve
-# terraform -chdir=infra/dev destroy -auto-approve
+terraform -chdir=infra/ apply -auto-approve
+# terraform -chdir=infra/ destroy -auto-approve
 
-terraform -chdir=infra/dev refresh
-terraform -chdir=infra/dev state list
+terraform -chdir=infra/ refresh
+terraform -chdir=infra/ state list
 
 aws eks update-kubeconfig --region ca-central-1 --name gitops-demo-dev
 
-
-```
-
-- Envoy
-
-```sh
 
 ```

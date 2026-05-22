@@ -2,7 +2,7 @@
 # VPC
 # ##############################
 module "vpc" {
-  source = "../../modules/vpc"
+  source = "../modules/vpc"
 
   vpc_name = local.vpc_name
   vpc_cidr = local.vpc_cidr
@@ -13,7 +13,7 @@ module "vpc" {
 # EKS
 # ##############################
 module "eks" {
-  source = "../../modules/eks"
+  source = "../modules/eks"
 
   cluster_name    = local.cluster_name
   cluster_version = local.cluster_version
@@ -29,7 +29,7 @@ module "eks" {
 # EKS Node Group: Bootstrap
 # ##############################
 module "eks_node_group" {
-  source = "../../modules/eks_node_group"
+  source = "../modules/eks_node_group"
 
   cluster_name    = module.eks.cluster_name
   node_group_name = "bootstrap"
@@ -69,7 +69,7 @@ module "karpenter" {
 # ArgoCD
 # ##############################
 module "eks_argocd" {
-  source = "../../modules/eks_argocd"
+  source = "../modules/eks_argocd"
 
   namespace     = "argocd"
   release_name  = "argocd"
