@@ -41,8 +41,6 @@ jobs:
           fi
           echo "Confirmed destroy of environment '$ENVIRONMENT'."
 
-<<<<<<< HEAD
-=======
       - name: Verify workflow ref matches target environment branch
         env:
           ENVIRONMENT: ${{ inputs.environment }}
@@ -55,7 +53,6 @@ jobs:
           fi
           echo "Workflow ref '$REF' matches target environment '$ENVIRONMENT'."
 
->>>>>>> dev
   destroy-plan-apply:
     name: destroy-plan-apply (${{ inputs.environment }})
     if: inputs.environment != 'prod'
