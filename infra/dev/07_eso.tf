@@ -81,3 +81,23 @@ output "eso_role_arn" {
   description = "IAM role ARN to annotate on the external-secrets ServiceAccount"
   value       = aws_iam_role.eso.arn
 }
+
+resource "aws_ssm_parameter" "cloudflare_api_key" {
+  name        = "/gitops/cloudflare/cloudflare-api-key"
+  description = "The cloudflare api key "
+  type        = "SecureString"
+  value       = var.cloudflare_api_key
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "argocd_slack_token" {
+  count = var.slack_bot_token != "" ? 1 : 0
+
+  name        = "/gitops/argocd/slack-token"
+  description = "Slack bot OAuth token (xoxb-...) consumed by ArgoCD notifications via ESO"
+  type        = "SecureString"
+  value       = var.slack_bot_token
+
+  tags = local.tags
+}

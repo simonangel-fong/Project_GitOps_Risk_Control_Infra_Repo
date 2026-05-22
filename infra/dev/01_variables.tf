@@ -12,23 +12,23 @@ variable "aws_region" {
   type = string
 }
 
-# # ##############################
-# # ArgoCD notifications
-# # ##############################
-# variable "slack_bot_token" {
-#   description = "Slack bot OAuth token (xoxb-...) for ArgoCD notifications."
-#   type        = string
-#   sensitive   = true
-#   default     = ""
-# }
+# ##############################
+# ArgoCD notifications
+# ##############################
+variable "slack_bot_token" {
+  description = "Slack bot OAuth token (xoxb-...) for ArgoCD notifications. Stored in SSM and synced into argocd-notifications-secret by ESO. Leave empty to disable notifications."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
 
-# # ##############################
-# # cloudflare
-# # ##############################
-# variable "cf_api_token" {
-#   type      = string
-#   sensitive = true
-# }
+# ##############################
+# cloudflare
+# ##############################
+variable "cloudflare_api_key" {
+  type      = string
+  sensitive = true
+}
 # variable "dns_prefix" {
 #   type = string
 # }

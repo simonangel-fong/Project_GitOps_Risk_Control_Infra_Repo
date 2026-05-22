@@ -36,7 +36,7 @@ module "eks_node_group" {
   subnet_ids      = module.vpc.private_subnet_ids
 
   instance_types = ["t3.medium"]
-  desired_size   = 1
+  desired_size   = 2
   min_size       = 1
   max_size       = 3
 
@@ -90,15 +90,10 @@ module "eks_argocd" {
   root_app_name        = "00-app-of-apps"
   root_app_project     = "default"
 
-  # # Slack notifications (auto-disabled until slack_bot_token is set in terraform.tfvars)
-  # enable_notifications = var.slack_bot_token != ""
-  # slack_token          = var.slack_bot_token
-  # notifications_default_subscriptions = [
-  #   {
-  #     recipients = ["slack:project-gitops-demo"]
-  #     triggers   = ["on-sync-failed", "on-health-degraded"]
-  #   },
-  # ]
+  # Slack notifications (auto-disabled when slack_bot_token is empty).
+  # Token is stored in SSM and synced into argocd-notifications-secret by ESO;
+  # subscriptions are configured per-Application via annotations in the GitOps repo.
+  enable_notifications = var.slack_bot_token != ""
 
   depends_on = [
     # module.eks_node_group,

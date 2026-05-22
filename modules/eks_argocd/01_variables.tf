@@ -65,38 +65,28 @@ variable "root_app_project" {
   default     = "default"
 }
 
-# # ##############################
-# # Notifications (Slack)
-# # ##############################
-# variable "enable_notifications" {
-#   description = "Enable ArgoCD notifications sub-component (Slack only, for now)"
-#   type        = bool
-#   default     = false
-# }
+# ##############################
+# Notifications (Slack)
+# ##############################
+# The Slack token itself is NOT a Terraform input — it is synced from SSM
+# into the argocd-notifications-secret by External Secrets Operator.
+variable "enable_notifications" {
+  description = "Enable ArgoCD notifications sub-component (Slack only, for now). Requires argocd-notifications-secret to exist with key 'slack-token' (managed by ESO)."
+  type        = bool
+  default     = false
+}
 
-# variable "slack_token" {
-#   description = "Slack bot OAuth token (xoxb-...) stored in argocd-notifications-secret as key 'slack-token'. Required when enable_notifications = true."
-#   type        = string
-#   default     = ""
-#   sensitive   = true
+variable "notifications_default_subscriptions" {
+  description = "Optional cluster-wide notification subscriptions. Each entry is a {recipients, triggers} object. Leave empty to require per-Application annotations."
+  type = list(object({
+    recipients = list(string) # e.g. ["slack:my-channel"]
+    triggers   = list(string) # e.g. ["on-sync-failed", "on-health-degraded"]
+  }))
+  default = []
+}
 
-#   validation {
-#     condition     = !var.enable_notifications || length(var.slack_token) > 0
-#     error_message = "slack_token must be non-empty when enable_notifications is true."
-#   }
-# }
-
-# variable "notifications_default_subscriptions" {
-#   description = "Optional cluster-wide notification subscriptions. Each entry is a {recipients, triggers} object. Leave empty to require per-Application annotations."
-#   type = list(object({
-#     recipients = list(string) # e.g. ["slack:my-channel"]
-#     triggers   = list(string) # e.g. ["on-sync-failed", "on-health-degraded"]
-#   }))
-#   default = []
-# }
-
-# variable "notifications_extra_values" {
-#   description = "Extra Helm values YAML merged into the notifications block (custom templates, triggers, etc.). Applied after the module-generated notifications block, before var.values."
-#   type        = string
-#   default     = ""
-# }
+variable "notifications_extra_values" {
+  description = "Extra Helm values YAML merged into the notifications block (custom templates, triggers, etc.). Applied after the module-generated notifications block, before var.values."
+  type        = string
+  default     = ""
+}
