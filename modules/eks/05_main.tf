@@ -77,7 +77,6 @@ resource "aws_eks_cluster" "main" {
 
 # ##############################
 # Cluster Security Group Tags
-# (worker nodes use the cluster SG; tag it for Karpenter discovery, etc.)
 # ##############################
 resource "aws_ec2_tag" "cluster_security_group" {
   for_each = var.node_security_group_tags
@@ -89,7 +88,6 @@ resource "aws_ec2_tag" "cluster_security_group" {
 
 # ##############################
 # Cluster Security Group — Additional Ingress Rules
-# (applied to the cluster SG that worker nodes attach to)
 # ##############################
 resource "aws_vpc_security_group_ingress_rule" "node_additional" {
   for_each = var.node_security_group_additional_rules

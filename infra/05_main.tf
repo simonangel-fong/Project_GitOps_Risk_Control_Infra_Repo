@@ -1,3 +1,4 @@
+# main.tf
 # ##############################
 # VPC
 # ##############################
@@ -36,9 +37,9 @@ module "eks_node_group" {
   subnet_ids      = module.vpc.private_subnet_ids
 
   instance_types = ["t3.medium"]
-  desired_size   = 1
+  desired_size   = 2
   min_size       = 1
-  max_size       = 2
+  max_size       = 3
 
   node_group_tags = local.tags
 }
@@ -90,9 +91,7 @@ module "eks_argocd" {
   root_app_name        = "00-app-of-apps"
   root_app_project     = "default"
 
-  # Slack notifications (auto-disabled when slack_bot_token is empty).
-  # Token is stored in SSM and synced into argocd-notifications-secret by ESO;
-  # subscriptions are configured per-Application via annotations in the GitOps repo.
+  # argocd notification
   enable_notifications = var.slack_bot_token != ""
 
   depends_on = [

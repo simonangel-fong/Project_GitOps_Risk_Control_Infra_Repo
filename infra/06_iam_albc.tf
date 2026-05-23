@@ -1,5 +1,6 @@
+# iam_albc.tf
 # ##############################################################
-# IAM for AWS Load Balancer Controller (IRSA)
+# IAM: AWS Load Balancer Controller (IRSA)
 # ##############################################################
 
 locals {

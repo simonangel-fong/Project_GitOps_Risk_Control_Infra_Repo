@@ -65,11 +65,6 @@ variable "root_app_project" {
   default     = "default"
 }
 
-# ##############################
-# Notifications (Slack)
-# ##############################
-# The Slack token itself is NOT a Terraform input — it is synced from SSM
-# into the argocd-notifications-secret by External Secrets Operator.
 variable "enable_notifications" {
   description = "Enable ArgoCD notifications sub-component (Slack only, for now). Requires argocd-notifications-secret to exist with key 'slack-token' (managed by ESO)."
   type        = bool

@@ -1,5 +1,6 @@
+# iam.eso.tf
 # ##############################################################
-# IAM for External Secrets Operator (IRSA)
+# IAM: External Secrets Operator (IRSA)
 # ##############################################################
 
 locals {
