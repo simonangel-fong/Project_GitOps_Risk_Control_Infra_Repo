@@ -1,3 +1,16 @@
+# Runbook: Debug Terraform Codes
+
+[Back](../README.md)
+
+- [Runbook: Debug Terraform Codes](#runbook-debug-terraform-codes)
+  - [Dev Environment](#dev-environment)
+  - [Stage Environment](#stage-environment)
+  - [Prod Environment](#prod-environment)
+
+---
+
+## Dev Environment
+
 ```sh
 terraform -chdir=infra/ init -backend-config=backend-dev.config -upgrade
 terraform -chdir=infra/ init -backend-config=backend-dev.config --reconfigure
@@ -14,13 +27,13 @@ tflint --chdir=infra --init
 tflint --chdir=infra --recursive --format compact
 aws eks update-kubeconfig --region ca-central-1 --name gitops-dev
 
-kubectl apply -f secret.yaml
-
-
-
-
-kubectl delete application 00-app-of-apps -n argocd
+# kubectl apply -f secret.yaml
+# kubectl delete application 00-app-of-apps -n argocd
 ```
+
+---
+
+## Stage Environment
 
 ```sh
 terraform -chdir=infra/ init -backend-config=backend-stage.config
@@ -33,7 +46,9 @@ aws eks update-kubeconfig --region ca-central-1 --name gitops-stage
 terraform -chdir=infra/ destroy -auto-approve
 ```
 
-### Prod
+---
+
+## Prod Environment
 
 ```sh
 terraform -chdir=infra/ init -backend-config=backend-prod.config -migrate-state

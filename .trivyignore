@@ -1,13 +1,10 @@
 # Trivy IaC ignore list for 10-ci-check.
-# Format: one check ID per line. Always include a comment with the reason
-# and (when possible) a link to the issue or PR tracking remediation.
-#
 # Example:
 # AVD-AWS-0017  # EKS public endpoint — intentional for demo cluster; tracked in #123
 
-# Dev cluster: public endpoint accepted until bastion lands. Owner: @simonangel-fong. Review: 2026-08-01.
+# public endpoint accepted until bastion lands.
 AVD-AWS-0040
 AVD-AWS-0041
-# Managed EKS node groups need broad egress for ECR/STS/registry pulls. Upstream module behavior.
+# Managed EKS node groups need broad egress for ECR/STS/registry pulls.
 AVD-AWS-0104
 AVD-AWS-0039

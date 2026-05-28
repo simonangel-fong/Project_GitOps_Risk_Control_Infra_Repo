@@ -29,7 +29,7 @@ locals {
   rendered_root_app = templatefile("${path.module}/manifests/app-of-apps.tftpl", {
     namespace            = local.namespace
     root_app_name        = local.root_app_name
-    root_app_project     = var.project_name
+    root_app_project     = "default"
     gitops_repo_url      = var.gitops_repo_url
     gitops_repo_revision = var.gitops_repo_revision
     gitops_repo_path     = var.gitops_repo_path

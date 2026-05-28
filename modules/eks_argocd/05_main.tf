@@ -21,14 +21,14 @@ resource "helm_release" "argocd" {
   wait    = true
 }
 
-# ##############################
-# AppProject (must exist before any Application that references it)
-# ##############################
-resource "kubectl_manifest" "project" {
-  yaml_body = local.rendered_project
+# # ##############################
+# # AppProject (must exist before any Application that references it)
+# # ##############################
+# resource "kubectl_manifest" "project" {
+#   yaml_body = local.rendered_project
 
-  depends_on = [helm_release.argocd]
-}
+#   depends_on = [helm_release.argocd]
+# }
 
 # ##############################
 # Root Application (app-of-apps)
@@ -38,5 +38,5 @@ resource "kubectl_manifest" "root_app" {
 
   yaml_body = local.rendered_root_app
 
-  depends_on = [kubectl_manifest.project]
+  # depends_on = [kubectl_manifest.project]
 }

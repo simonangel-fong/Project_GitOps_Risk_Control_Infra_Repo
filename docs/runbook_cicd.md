@@ -1,6 +1,26 @@
-# CI/CD Plan — Project_GitOps_Infra_Repo
+# Runbook: CI/CD Pipelines
 
-This document refines the pipeline design sketched in the root [README.md](../README.md). It defines the branching model, workflows, composite actions, environments, secrets, and guardrails the repo should converge on.
+[Back](../README.md)
+
+- [Runbook: CI/CD Pipelines](#runbook-cicd-pipelines)
+  - [1. Goals \& Non-Goals](#1-goals--non-goals)
+  - [2. Branching \& Environment Model](#2-branching--environment-model)
+  - [3. Pipeline Inventory](#3-pipeline-inventory)
+  - [4. Composite Actions (reuse layer)](#4-composite-actions-reuse-layer)
+  - [5. Workflow Specs](#5-workflow-specs)
+    - [5.1 `10-ci-check.yml` — CI (no AWS, no state)](#51-10-ci-checkyml--ci-no-aws-no-state)
+    - [5.2 `20-cd-dev.yml` / `21-cd-stage.yml`](#52-20-cd-devyml--21-cd-stageyml)
+    - [5.3 `30-cd-prod.yml` — production with approval gate](#53-30-cd-prodyml--production-with-approval-gate)
+    - [5.4 `40-drift-detect.yml`](#54-40-drift-detectyml)
+    - [5.5 `90-tf-destroy.yml`](#55-90-tf-destroyyml)
+  - [6. Secrets, Variables, OIDC](#6-secrets-variables-oidc)
+    - [Per-environment (configured in GH environment `dev` / `stage` / `prod`)](#per-environment-configured-in-gh-environment-dev--stage--prod)
+    - [Repo-level](#repo-level)
+    - [OIDC trust policy condition (per role)](#oidc-trust-policy-condition-per-role)
+    - [Local development](#local-development)
+  - [7. Guardrails](#7-guardrails)
+  - [8. Open Items / Follow-Ups](#8-open-items--follow-ups)
+  - [9. Diagram](#9-diagram)
 
 ---
 
@@ -155,26 +175,26 @@ All per-env config lives in GitHub environment secrets/variables. No `.tfvars` f
 
 **Used by [tf-apply](../.github/actions/tf-apply/action.yaml) to talk to AWS and configure the backend:**
 
-| Name                  | Kind     | Purpose                                                       |
-| --------------------- | -------- | ------------------------------------------------------------- |
-| `AWS_CICD_ROLE_ARN`   | secret   | IAM role assumed via OIDC. Trust policy scoped to repo + env. |
-| `AWS_REGION`          | variable | e.g. `ca-central-1`. Also used as `TF_VAR_aws_region`.        |
-| `AWS_BACKEND_BUCKET`  | variable | S3 bucket holding state for this env's account.               |
-| `PROJECT_NAME`        | variable | State-key prefix, e.g. `gitops-demo`.                         |
+| Name                 | Kind     | Purpose                                                       |
+| -------------------- | -------- | ------------------------------------------------------------- |
+| `AWS_CICD_ROLE_ARN`  | secret   | IAM role assumed via OIDC. Trust policy scoped to repo + env. |
+| `AWS_REGION`         | variable | e.g. `ca-central-1`. Also used as `TF_VAR_aws_region`.        |
+| `AWS_BACKEND_BUCKET` | variable | S3 bucket holding state for this env's account.               |
+| `PROJECT_NAME`       | variable | State-key prefix, e.g. `gitops-demo`.                         |
 
 **Consumed by Terraform as `TF_VAR_*` (no tfvars file needed — Terraform reads these env vars automatically):**
 
-| Name                          | Kind     | Maps to Terraform variable      |
-| ----------------------------- | -------- | ------------------------------- |
-| `TF_VAR_env`                  | variable | `var.env` (`dev`/`stage`/`prod`) |
-| `TF_VAR_aws_region`           | variable | `var.aws_region`                |
-| `TF_VAR_cloudflare_api_key`   | secret   | `var.cloudflare_api_key`        |
-| `TF_VAR_slack_bot_token`      | secret   | `var.slack_bot_token` (optional — leave unset to disable ArgoCD Slack notifications) |
+| Name                        | Kind     | Maps to Terraform variable                                                           |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `TF_VAR_env`                | variable | `var.env` (`dev`/`stage`/`prod`)                                                     |
+| `TF_VAR_aws_region`         | variable | `var.aws_region`                                                                     |
+| `TF_VAR_cloudflare_api_key` | secret   | `var.cloudflare_api_key`                                                             |
+| `TF_VAR_slack_bot_token`    | secret   | `var.slack_bot_token` (optional — leave unset to disable ArgoCD Slack notifications) |
 
 ### Repo-level
 
-| Name                | Kind   | Notes                                      |
-| ------------------- | ------ | ------------------------------------------ |
+| Name                | Kind   | Notes                                                                                                          |
+| ------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
 | `SLACK_WEBHOOK_URL` | secret | Used by [notify-slack](../.github/actions/notify-slack/action.yml). Single channel for now; can split per-env. |
 
 ### OIDC trust policy condition (per role)

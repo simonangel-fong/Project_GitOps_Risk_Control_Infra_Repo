@@ -1,14 +1,35 @@
-# eks_argocd
+# Runbook: Debug Terraform Codes
+
+[Back](../README.md)
+
+- [Runbook: Debug Terraform Codes](#runbook-debug-terraform-codes)
+  - [Terraform Module](#terraform-module)
+  - [What this module does](#what-this-module-does)
+  - [Requirements](#requirements)
+  - [Usage](#usage)
+    - [Minimal example](#minimal-example)
+    - [Full example with provider wiring](#full-example-with-provider-wiring)
+    - [Install Argo CD only (skip the root Application)](#install-argo-cd-only-skip-the-root-application)
+    - [Notifications](#notifications)
+  - [Templates](#templates)
+  - [Inputs](#inputs)
+  - [Outputs](#outputs)
+  - [Accessing the Argo CD UI](#accessing-the-argo-cd-ui)
+  - [Notes](#notes)
+
+---
+
+## Terraform Module
 
 Terraform module that installs [Argo CD](https://argo-cd.readthedocs.io/) onto an existing EKS cluster via the official Helm chart and (optionally) bootstraps a **root "app-of-apps"** `Application` that points at your GitOps config repo.
 
 This module follows upstream ArgoCD conventions and hardcodes the names you'd otherwise be tempted to make configurable:
 
-| What             | Value             |
-| ---------------- | ----------------- |
-| Namespace        | `argocd`          |
-| Helm release     | `argocd`          |
-| Root Application | `00-app-of-apps`  |
+| What             | Value            |
+| ---------------- | ---------------- |
+| Namespace        | `argocd`         |
+| Helm release     | `argocd`         |
+| Root Application | `00-app-of-apps` |
 
 The Argo `AppProject` is named after `var.project_name` and scopes the root app-of-apps tree to your GitOps repo. If you need different namespace/release/root-app names, fork the module — don't bolt on parameters.
 
