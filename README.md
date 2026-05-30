@@ -34,10 +34,6 @@ This project implements a **GitOps-based release risk control workflow** across 
 | Release      | Use `canary deployment` and automated rollout control                                                      | Limit the impact of failed releases               |
 | Post-release | Monitor system health and trigger alerts after deployment                                                  | Detect incidents quickly and reduce recovery time |
 
-- [Platform Repository](https://github.com/simonangel-fong/Project_GitOps_Risk_Control_Platform_Repo.git)
-- [Application Repository](https://github.com/simonangel-fong/Project_GitOps_Risk_Control_App_Repo.git)
-- [Infrastructure Repository](https://github.com/simonangel-fong/Project_GitOps_Risk_Control_Infra_Repo.git)
-
 ---
 
 ## What This Infrastructure Repo Manages
